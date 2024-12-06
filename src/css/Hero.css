@@ -1,0 +1,36 @@
+.hero {
+    display: flex;
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center items horizontally */
+    justify-content: center; /* Center items vertically */
+    width: 100vw; /* Cover the entire viewport width */
+    height: 100vh; /* Cover the entire viewport height */
+    background-color: black; /* Solid background color */
+    color: white; /* Text color */
+    text-align: center; /* Center text */
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding */
+  }
+  
+  .hero-title {
+    font-size: 48px; /* Adjust font size */
+    font-weight: bold; /* Make title bold */
+    margin-bottom: 20px; /* Space between title and button */
+  }
+  
+  button {
+    background-color: #ffffff; /* Button background color */
+    color: #0073e6; /* Button text color */
+    padding: 12px 24px; /* Button padding */
+    border: none; /* No border */
+    border-radius: 5px; /* Rounded corners */
+    font-size: 18px; /* Button font size */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: background-color 0.3s; /* Smooth background color transition */
+  }
+  
+  button:hover {
+    background-color: #005bb5; /* Darker shade on hover */
+    color: white; /* Change text color on hover */
+  }
+  

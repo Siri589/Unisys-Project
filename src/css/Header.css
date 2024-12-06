@@ -1,0 +1,43 @@
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  
+    background-color: #0073e6;
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100vw; /* Full viewport width */
+    height: auto;
+  }
+  
+  .logo {
+    height: 40px; /* Reduced height */
+    width: auto;
+    margin-right: 10px;
+  }
+  
+  .title {
+    font-size: 22px; /* Reduced font size */
+    font-weight: bold;
+    flex-grow: 1;
+    text-align: center;
+    color: white;
+    font-family: Arial, sans-serif;
+  }
+  
+  .sign-in-btn {
+    background-color: white;
+    color: #0073e6;
+    margin-right: 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px; /* Reduced font size */
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  .sign-in-btn:hover {
+    background-color: #005bb5;
+    color: white;
+  }
+  
