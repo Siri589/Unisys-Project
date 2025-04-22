@@ -1,231 +1,271 @@
 import React, { useState } from 'react';
-import './CreateTrip.css';
-import { chatSession } from '../service/AIModal.jsx';
+import { chatSession } from '../service/AIModal';
+import './fertilizer.css';
+import Header from '../components/custom/Header';
 
-function FertilizerRecommendation() {
-  const [cropType, setCropType] = useState('');
-  const [growthStage, setGrowthStage] = useState('');
-  const [soilTexture, setSoilTexture] = useState('');
-  const [phLevel, setPhLevel] = useState('');
-  const [nitrogen, setNitrogen] = useState('');
-  const [phosphorus, setPhosphorus] = useState('');
-  const [potassium, setPotassium] = useState('');
-  const [moisture, setMoisture] = useState('');
-  const [organicMatter, setOrganicMatter] = useState('');
-  const [region, setRegion] = useState('');
-  const [purpose, setPurpose] = useState('');
-  const [fertilizerPreference, setFertilizerPreference] = useState('');
-  const [budget, setBudget] = useState('');
-  const [prevFertilizers, setPrevFertilizers] = useState([]);
-  const [fertilizerFeedback, setFertilizerFeedback] = useState('');
+function FertilizerSuggestion() {
+  const [formData, setFormData] = useState({
+    soilType: '',
+    phLevel: '',
+    nitrogen: '',
+    phosphorus: '',
+    potassium: '',
+    moisture: '',
+    crop: ''
+  });
+
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-  
-    const aiPrompt = `Based on the farmer's input:
-      - Crop Type: ${cropType || 'Not specified'}
-      - Growth Stage: ${growthStage}
-      - Soil Texture: ${soilTexture}
-      - Soil pH Level: ${phLevel}
-      - Nitrogen Content: ${nitrogen} mg/kg
-      - Phosphorus Content: ${phosphorus} mg/kg
-      - Potassium Content: ${potassium} mg/kg
-      - Soil Moisture Level: ${moisture}%
-      - Organic Matter Content: ${organicMatter}%
-      - Region/Place: ${region || 'Not specified'}
-      - Purpose of Fertilizer Use: ${purpose}
-      - Fertilizer Preference: ${fertilizerPreference}
-      - Budget for Fertilizer: ${budget || 'No budget specified'}
-      - Previously Used Fertilizers: ${prevFertilizers.join(', ') || 'None specified'}
-      - Fertilizer Performance Feedback: ${fertilizerFeedback || 'No feedback provided'}
-  
-      Focus on sustainable farming practices and provide:
-      1. Recommended fertilizers.
-      2. Application methods and amounts.
-      3. Environmental benefits and precautions.
-      4. Expected crop improvements.
-      5. Tips for sustainable use.`;
-  
+    setError(null);
+    setRecommendations(null);
+
     try {
-      const result = await chatSession.sendMessage(aiPrompt);
-      const data = await result.response.text();
-  
-      console.log("JSON Response:", data);
-  
-      const parsedData = JSON.parse(data);
-  
-      setRecommendations({
-        fertilizers: parsedData['Recommended Fertilizers'] || [],
-        applicationMethods: parsedData['Application Methods and Amounts'] || {},
-        environmentalBenefits: parsedData['Environmental Benefits and Precautions'].Benefits || [],
-        precautions: parsedData['Environmental Benefits and Precautions'].Precautions || [],
-        cropImprovements: parsedData['Expected Crop Improvements'] || [],
-        sustainableTips: parsedData['Tips for Sustainable Use'] || [],
-      });
-    } catch (error) {
-      console.error('Error fetching recommendations:', error);
-      setRecommendations({ error: 'Unable to generate recommendations. Please try again later.' });
+      const prompt = `You are an agricultural expert AI. Based on these conditions, recommend suitable fertilizers:
+
+Soil Properties:
+- Soil Type: ${formData.soilType}
+- pH Level: ${formData.phLevel}
+- Current Nitrogen Level: ${formData.nitrogen} mg/kg
+- Current Phosphorus Level: ${formData.phosphorus} mg/kg
+- Current Potassium Level: ${formData.potassium} mg/kg
+- Moisture Level: ${formData.moisture}
+- Target Crop: ${formData.crop}
+
+Provide 2-3 fertilizer recommendations in this exact format:
+
+1. [Fertilizer Name]
+- NPK Ratio: [ratio]
+- Application: [detailed instructions]
+- Benefits: [expected improvements]
+- Environmental: [considerations]
+
+2. [Fertilizer Name]
+- NPK Ratio: [ratio]
+- Application: [detailed instructions]
+- Benefits: [expected improvements]
+- Environmental: [considerations]
+
+3. [Fertilizer Name] (optional)
+- NPK Ratio: [ratio]
+- Application: [detailed instructions]
+- Benefits: [expected improvements]
+- Environmental: [considerations]`;
+
+      const response = await chatSession(prompt, 'fertilizer');
+      console.log('AI Response:', response);
+
+      if (!response) {
+        throw new Error('No response received from AI service');
+      }
+
+      // Parse the AI response
+      const lines = response.split('\n');
+      const recommendations = [];
+      let currentRec = null;
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) continue;
+
+        // Check for new fertilizer recommendation (starts with number followed by dot)
+        if (/^\d+\./.test(trimmedLine)) {
+          if (currentRec?.fertilizer_name) {
+            recommendations.push(currentRec);
+          }
+          currentRec = {
+            fertilizer_name: trimmedLine.replace(/^\d+\.\s*/, '').trim(),
+            npk_ratio: '',
+            application_instructions: '',
+            expected_yield_improvements: '',
+            environmental_considerations: ''
+          };
+        }
+        // Update fields of current recommendation
+        else if (currentRec && trimmedLine.startsWith('-')) {
+          const [key, ...valueParts] = trimmedLine.substring(1).split(':');
+          const value = valueParts.join(':').trim();
+          
+          switch (key.trim().toLowerCase()) {
+            case 'npk ratio':
+              currentRec.npk_ratio = value || 'Standard NPK ratio';
+              break;
+            case 'application':
+              currentRec.application_instructions = value || 'Apply as per standard guidelines';
+              break;
+            case 'benefits':
+              currentRec.expected_yield_improvements = value || 'Improved crop yield';
+              break;
+            case 'environmental':
+              currentRec.environmental_considerations = value || 'Follow environmental guidelines';
+              break;
+          }
+        }
+      }
+
+      // Add the last recommendation
+      if (currentRec?.fertilizer_name) {
+        recommendations.push(currentRec);
+      }
+
+      // Validate recommendations
+      if (recommendations.length === 0) {
+        throw new Error('Could not extract any recommendations from the AI response');
+      }
+
+      // Fill in any missing fields with defaults
+      const validRecommendations = recommendations.map(rec => ({
+        fertilizer_name: rec.fertilizer_name || 'General Purpose Fertilizer',
+        npk_ratio: rec.npk_ratio || 'Standard NPK ratio',
+        application_instructions: rec.application_instructions || 'Apply as per standard guidelines',
+        expected_yield_improvements: rec.expected_yield_improvements || 'Improved crop yield',
+        environmental_considerations: rec.environmental_considerations || 'Follow environmental guidelines'
+      }));
+
+      setRecommendations(validRecommendations);
+
+    } catch (err) {
+      console.error('Error getting fertilizer recommendations:', err);
+      setError('Failed to get fertilizer recommendations. Please try again.');
+      setRecommendations(null);
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
-    <div className="container">
-      <h2>Fertilizer Recommendation Form</h2>
-      <form onSubmit={handleSubmit}>
-        {/* Crop Details */}
-        <label>Crop Type:</label>
-        <input type="text" value={cropType} onChange={(e) => setCropType(e.target.value)} />
+    <div className="fertilizer-suggestion">
+      <Header />
+      <div className="container">
+        <h2>Fertilizer Recommendation Form</h2>
+        {error && <p className="error-message">{error}</p>}
 
-        <label>Growth Stage:</label>
-        <select value={growthStage} onChange={(e) => setGrowthStage(e.target.value)}>
-          <option value="">Select...</option>
-          <option value="Germination">Germination</option>
-          <option value="Vegetative">Vegetative</option>
-          <option value="Flowering">Flowering</option>
-          <option value="Fruiting">Fruiting</option>
-          <option value="Harvesting">Harvesting</option>
-        </select>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Soil Type:</label>
+            <select 
+              name="soilType"
+              value={formData.soilType}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="">Select...</option>
+              <option value="Clay">Clay</option>
+              <option value="Loamy">Loamy</option>
+              <option value="Sandy">Sandy</option>
+              <option value="Black">Black</option>
+              <option value="Red">Red</option>
+            </select>
+          </div>
 
-        {/* Soil and Environment Inputs */}
-        <label>Soil Texture:</label>
-        <select value={soilTexture} onChange={(e) => setSoilTexture(e.target.value)}>
-          <option value="">Select...</option>
-          <option value="Clay">Clay</option>
-          <option value="Loam">Loam</option>
-          <option value="Sand">Sand</option>
-        </select>
+          <div className="form-group">
+            <label>pH Level:</label>
+            <input
+              type="number"
+              name="phLevel"
+              value={formData.phLevel}
+              onChange={handleInputChange}
+              step="0.1"
+              required
+            />
+          </div>
 
-        <label>Soil pH Level:</label>
-        <select value={phLevel} onChange={(e) => setPhLevel(e.target.value)}>
-          <option value="">Select...</option>
-          <option value="Acidic">Acidic</option>
-          <option value="Neutral">Neutral</option>
-          <option value="Alkaline">Alkaline</option>
-        </select>
+          <div className="form-group">
+            <label>Nitrogen Level (mg/kg):</label>
+            <input
+              type="number"
+              name="nitrogen"
+              value={formData.nitrogen}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
 
-        <label>Nitrogen (mg/kg):</label>
-        <input type="number" value={nitrogen} onChange={(e) => setNitrogen(e.target.value)} />
+          <div className="form-group">
+            <label>Phosphorus Level (mg/kg):</label>
+            <input
+              type="number"
+              name="phosphorus"
+              value={formData.phosphorus}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
 
-        <label>Phosphorus (mg/kg):</label>
-        <input type="number" value={phosphorus} onChange={(e) => setPhosphorus(e.target.value)} />
+          <div className="form-group">
+            <label>Potassium Level (mg/kg):</label>
+            <input
+              type="number"
+              name="potassium"
+              value={formData.potassium}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
 
-        <label>Potassium (mg/kg):</label>
-        <input type="number" value={potassium} onChange={(e) => setPotassium(e.target.value)} />
+          <div className="form-group">
+            <label>Moisture Level:</label>
+            <select
+              name="moisture"
+              value={formData.moisture}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="">Select...</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
 
-        <label>Soil Moisture (%):</label>
-        <input type="number" value={moisture} onChange={(e) => setMoisture(e.target.value)} />
+          <div className="form-group">
+            <label>Crop Type:</label>
+            <input
+              type="text"
+              name="crop"
+              value={formData.crop}
+              onChange={handleInputChange}
+              required
+              placeholder="e.g., Rice, Wheat, Cotton"
+            />
+          </div>
 
-        <label>Organic Matter (%):</label>
-        <input type="number" value={organicMatter} onChange={(e) => setOrganicMatter(e.target.value)} />
+          <button type="submit" disabled={loading}>
+            {loading ? 'Generating...' : 'Get Recommendations'}
+          </button>
+        </form>
 
-        <label>Region/Place:</label>
-        <input type="text" value={region} onChange={(e) => setRegion(e.target.value)} />
-
-        {/* Fertilizer Preferences */}
-        <label>Purpose of Fertilizer Use:</label>
-        <select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
-          <option value="">Select...</option>
-          <option value="Increase Yield">Increase Yield</option>
-          <option value="Boost Growth">Boost Growth</option>
-          <option value="Correct Nutrient Deficiency">Correct Nutrient Deficiency</option>
-          <option value="Improve Soil Health">Improve Soil Health</option>
-        </select>
-
-        <label>Fertilizer Preference:</label>
-        <select value={fertilizerPreference} onChange={(e) => setFertilizerPreference(e.target.value)}>
-          <option value="">Select...</option>
-          <option value="Organic">Organic</option>
-          <option value="Inorganic">Inorganic</option>
-          <option value="Biofertilizer">Biofertilizer</option>
-          <option value="No Preference">No Preference</option>
-        </select>
-
-        <label>Budget (in local currency):</label>
-        <input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} />
-
-        <label>Previously Used Fertilizers:</label>
-        <input
-          type="text"
-          value={prevFertilizers}
-          onChange={(e) => setPrevFertilizers(e.target.value.split(',').map(f => f.trim()))}
-        />
-
-        <label>Fertilizer Performance Feedback:</label>
-        <textarea
-          value={fertilizerFeedback}
-          onChange={(e) => setFertilizerFeedback(e.target.value)}
-        ></textarea>
-
-        <button type="submit" disabled={loading}>
-          {loading ? 'Generating...' : 'Get Recommendations'}
-        </button>
-      </form>
-
-      {/* Display Recommendations */}
-      {recommendations && (
-  <div className="recommendations">
-    <h3>Recommendations</h3>
-    {recommendations.error ? (
-      <p style={{ color: 'red' }}>{recommendations.error}</p>
-    ) : (
-      <>
-        <h4>Fertilizer Recommendations</h4>
-        <ul>
-          {recommendations.fertilizers.map((fertilizer, index) => (
-            <li key={index}>{fertilizer}</li>
-          ))}
-        </ul>
-
-        <h4>Application Methods and Amounts</h4>
-        <ul>
-          {Object.entries(recommendations.applicationMethods).map(([fertilizer, details], index) => (
-            <li key={index}>
-              <p><strong>{fertilizer}</strong></p>
-              <p>Method: {details.Method}</p>
-              <p>Amount: {details.Amount}</p>
-            </li>
-          ))}
-        </ul>
-
-        <h4>Environmental Benefits</h4>
-        <ul>
-          {recommendations.environmentalBenefits.map((benefit, index) => (
-            <li key={index}>{benefit}</li>
-          ))}
-        </ul>
-
-        <h4>Precautions</h4>
-        <ul>
-          {recommendations.precautions.map((precaution, index) => (
-            <li key={index}>{precaution}</li>
-          ))}
-        </ul>
-
-        <h4>Expected Crop Improvements</h4>
-        <ul>
-          {recommendations.cropImprovements.map((improvement, index) => (
-            <li key={index}>{improvement}</li>
-          ))}
-        </ul>
-
-        <h4>Sustainable Use Tips</h4>
-        <ul>
-          {recommendations.sustainableTips.map((tip, index) => (
-            <li key={index}>{tip}</li>
-          ))}
-        </ul>
-      </>
-    )}
-  </div>
-)}
-
-
+        {recommendations && (
+          <div className="recommendations-container">
+            <h3>Fertilizer Recommendations</h3>
+            <div className="recommendations">
+              {recommendations.map((recommendation, index) => (
+                <div key={index} className="recommendation-card">
+                  <h4>{recommendation.fertilizer_name}</h4>
+                  <p><strong>NPK Ratio:</strong> {recommendation.npk_ratio}</p>
+                  <p><strong>Application:</strong> {recommendation.application_instructions}</p>
+                  <p><strong>Expected Benefits:</strong> {recommendation.expected_yield_improvements}</p>
+                  <p><strong>Environmental Notes:</strong> {recommendation.environmental_considerations}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-export default FertilizerRecommendation;
+export default FertilizerSuggestion;

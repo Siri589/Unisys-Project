@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import './CreateTrip.css';
+import './crop.css';
 import { chatSession } from '../service/AIModal.jsx';
+import Header from '../components/custom/Header';
 
 function CropRecommendation() {
   const [soilTexture, setSoilTexture] = useState('');
@@ -21,168 +22,304 @@ function CropRecommendation() {
   const [region, setRegion] = useState('');
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState(null);
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    const aiPrompt = `Based on the following data provided by the farmer:
-    - Soil Texture: ${soilTexture}
-    - Soil pH Level: ${phLevel}
-    - Nitrogen Level: ${nitrogen} mg/kg
-    - Phosphorus Level: ${phosphorus} mg/kg
-    - Potassium Level: ${potassium} mg/kg
-    - Average Temperature: ${temperature}°C
-    - Seasonal Rainfall: ${rainfall} mm
-    - Humidity Level: ${humidity}%
-    - Wind Conditions: ${windConditions}
-    - Water Source: ${waterSource}
-    - Irrigation System Available: ${irrigationSystem ? 'Yes' : 'No'}
-    - Water Usage Limitations: ${waterUsage}
-    - Farming Technology Access: ${farmingTech}
-    - Previously Grown Crops: ${prevCrops || 'None specified'}
-    - Crop Preferences: ${cropPreferences || 'None specified'}
-    - Region/Place: ${region || 'Not specified'}
-
-    Consider sustainability, efficient land use, environmental impact, and crop rotation. Recommend:
-    1. Suitable crops for the conditions.
-    2. Suitability explanation.
-    3. Expected yields.
-    4. Tips for optimal growth.
-    5. Any environmental or sustainability considerations.`;
+    setError(null);
+    setRecommendations(null);
 
     try {
-      const result = await chatSession.sendMessage(aiPrompt);
-      const data = await result.response.text();
-      console.log("JSON Response:", data);
-      const parsedData = JSON.parse(data);
+      const prompt = `You are an agricultural expert AI. Based on these conditions, recommend suitable crops:
 
-      // Safely set recommendations
-      setRecommendations(parsedData.recommendations || [{ error: "No recommendations found." }]);
-    } catch (error) {
-      console.error("Error fetching recommendations:", error);
-      setRecommendations([{ error: "Unable to generate recommendations. Please try again later." }]);
+Soil Properties:
+- Texture: ${soilTexture}
+- pH Level: ${phLevel}
+- Nitrogen: ${nitrogen} mg/kg
+- Phosphorus: ${phosphorus} mg/kg
+- Potassium: ${potassium} mg/kg
+
+Climate Conditions:
+- Temperature: ${temperature}°C
+- Annual Rainfall: ${rainfall} mm
+- Humidity: ${humidity}%
+- Wind: ${windConditions}
+
+Water Availability:
+- Source: ${waterSource}
+- Irrigation System: ${irrigationSystem ? 'Available' : 'Not Available'}
+- Location: ${region}
+
+Provide 3 crop recommendations in this exact format:
+
+1. [Crop Name]
+- Suitability: [percentage]
+- Growing Season: [months]
+- Care Instructions: [details]
+
+2. [Crop Name]
+- Suitability: [percentage]
+- Growing Season: [months]
+- Care Instructions: [details]
+
+3. [Crop Name]
+- Suitability: [percentage]
+- Growing Season: [months]
+- Care Instructions: [details]`;
+
+      const response = await chatSession(prompt, 'crop');
+      console.log('AI Response:', response);
+
+      if (!response) {
+        throw new Error('No response received from AI service');
+      }
+
+      // Parse the AI response
+      const lines = response.split('\n');
+      const recommendations = [];
+      let currentRec = null;
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) continue;
+
+        // Check for new crop recommendation (starts with number followed by dot)
+        if (/^\d+\./.test(trimmedLine)) {
+          if (currentRec?.crop) {
+            recommendations.push(currentRec);
+          }
+          currentRec = {
+            crop: trimmedLine.replace(/^\d+\.\s*/, '').trim(),
+            suitability: '',
+            season: '',
+            care: ''
+          };
+        }
+        // Update fields of current recommendation
+        else if (currentRec && trimmedLine.startsWith('-')) {
+          const [key, ...valueParts] = trimmedLine.substring(1).split(':');
+          const value = valueParts.join(':').trim();
+          
+          switch (key.trim().toLowerCase()) {
+            case 'suitability':
+              const match = value.match(/\d+/);
+              currentRec.suitability = match ? `${match[0]}%` : '90%';
+              break;
+            case 'growing season':
+              currentRec.season = value || 'Year-round';
+              break;
+            case 'care instructions':
+              currentRec.care = value || 'Regular monitoring and maintenance required';
+              break;
+          }
+        }
+      }
+
+      // Add the last recommendation
+      if (currentRec?.crop) {
+        recommendations.push(currentRec);
+      }
+
+      // Validate recommendations
+      if (recommendations.length === 0) {
+        throw new Error('Could not extract any recommendations from the AI response');
+      }
+
+      // Fill in any missing fields with defaults
+      const validRecommendations = recommendations.map(rec => ({
+        crop: rec.crop || 'Unknown Crop',
+        suitability: rec.suitability || '90%',
+        season: rec.season || 'Year-round',
+        care: rec.care || 'Regular monitoring and maintenance required'
+      }));
+
+      setRecommendations(validRecommendations);
+
+    } catch (err) {
+      console.error('Error getting crop recommendations:', err);
+      setError('Failed to get crop recommendations. Please try again.');
+      setRecommendations(null);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="container">
-      <h2>Provide Detailed Farming Data</h2>
-      <form onSubmit={handleSubmit}>
-        {/* Soil and Environmental Inputs */}
-        <label>Soil Texture:</label>
-        <select value={soilTexture} onChange={(e) => setSoilTexture(e.target.value)} >
-          <option value="">Select...</option>
-          <option value="Clay">Clay</option>
-          <option value="Loam">Loam</option>
-          <option value="Sand">Sand</option>
-        </select>
+    <div className="crop-recommendation">
+      <Header />
+      <div className="container">
+        <h1>Crop Recommendation</h1>
+        <form onSubmit={handleSubmit}>
+          <div className="form-section">
+            <h2>Soil Properties</h2>
+            <div className="form-group">
+              <label>Soil Texture:</label>
+              <select value={soilTexture} onChange={(e) => setSoilTexture(e.target.value)} required>
+                <option value="">Select...</option>
+                <option value="Clay">Clay</option>
+                <option value="Loam">Loamy</option>
+                <option value="Sand">Sandy</option>
+                <option value="Silt">Silty</option>
+                <option value="Clay Loam">Clay Loam</option>
+              </select>
+            </div>
 
-        <label>Soil pH Level:</label>
-        <select value={phLevel} onChange={(e) => setPhLevel(e.target.value)} >
-          <option value="">Select...</option>
-          <option value="Acidic">Acidic</option>
-          <option value="Neutral">Neutral</option>
-          <option value="Alkaline">Alkaline</option>
-        </select>
+            <div className="form-group">
+              <label>Soil pH Level:</label>
+              <select value={phLevel} onChange={(e) => setPhLevel(e.target.value)} required>
+                <option value="">Select...</option>
+                <option value="Acidic">Acidic (Below 6.5)</option>
+                <option value="Neutral">Neutral (6.5-7.5)</option>
+                <option value="Alkaline">Alkaline (Above 7.5)</option>
+              </select>
+            </div>
 
-        <label>Nitrogen Level (mg/kg):</label>
-        <input type="number" value={nitrogen} onChange={(e) => setNitrogen(e.target.value)} />
+            <div className="form-group">
+              <label>Nitrogen Level (mg/kg):</label>
+              <input 
+                type="number" 
+                value={nitrogen} 
+                onChange={(e) => setNitrogen(e.target.value)}
+                required
+                min="0"
+                max="1000"
+              />
+            </div>
 
-        <label>Phosphorus Level (mg/kg):</label>
-        <input type="number" value={phosphorus} onChange={(e) => setPhosphorus(e.target.value)} />
+            <div className="form-group">
+              <label>Phosphorus Level (mg/kg):</label>
+              <input 
+                type="number" 
+                value={phosphorus} 
+                onChange={(e) => setPhosphorus(e.target.value)}
+                required
+                min="0"
+                max="1000"
+              />
+            </div>
 
-        <label>Potassium Level (mg/kg):</label>
-        <input type="number" value={potassium} onChange={(e) => setPotassium(e.target.value)} />
+            <div className="form-group">
+              <label>Potassium Level (mg/kg):</label>
+              <input 
+                type="number" 
+                value={potassium} 
+                onChange={(e) => setPotassium(e.target.value)}
+                required
+                min="0"
+                max="1000"
+              />
+            </div>
+          </div>
 
-        <label>Average Temperature (°C):</label>
-        <input type="number" value={temperature} onChange={(e) => setTemperature(e.target.value)} />
+          <div className="form-section">
+            <h2>Environmental Conditions</h2>
+            <div className="form-group">
+              <label>Average Temperature (°C):</label>
+              <input 
+                type="number" 
+                value={temperature} 
+                onChange={(e) => setTemperature(e.target.value)}
+                required
+                min="-20"
+                max="50"
+              />
+            </div>
 
-        <label>Seasonal Rainfall (mm):</label>
-        <input type="number" value={rainfall} onChange={(e) => setRainfall(e.target.value)} />
+            <div className="form-group">
+              <label>Annual Rainfall (mm):</label>
+              <input 
+                type="number" 
+                value={rainfall} 
+                onChange={(e) => setRainfall(e.target.value)}
+                required
+                min="0"
+                max="5000"
+              />
+            </div>
 
-        <label>Humidity Level (%):</label>
-        <input type="number" step="1" value={humidity} onChange={(e) => setHumidity(e.target.value)} />
+            <div className="form-group">
+              <label>Humidity (%):</label>
+              <input 
+                type="number" 
+                value={humidity} 
+                onChange={(e) => setHumidity(e.target.value)}
+                required
+                min="0"
+                max="100"
+              />
+            </div>
 
-        <label>Wind Conditions:</label>
-        <select value={windConditions} onChange={(e) => setWindConditions(e.target.value)} >
-          <option value="">Select...</option>
-          <option value="Calm">Calm</option>
-          <option value="Moderate">Moderate</option>
-          <option value="Strong">Strong</option>
-        </select>
+            <div className="form-group">
+              <label>Wind Conditions:</label>
+              <select value={windConditions} onChange={(e) => setWindConditions(e.target.value)} required>
+                <option value="">Select...</option>
+                <option value="Calm">Calm</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Strong">Strong</option>
+              </select>
+            </div>
+          </div>
 
-        {/* Farming and Water Inputs */}
-        <label>Water Source:</label>
-        <select value={waterSource} onChange={(e) => setWaterSource(e.target.value)} >
-          <option value="">Select...</option>
-          <option value="Well">Well</option>
-          <option value="River">River</option>
-          <option value="Reservoir">Reservoir</option>
-          <option value="None">None</option>
-        </select>
+          <div className="form-section">
+            <h2>Additional Information</h2>
+            <div className="form-group">
+              <label>Water Source:</label>
+              <select value={waterSource} onChange={(e) => setWaterSource(e.target.value)} required>
+                <option value="">Select...</option>
+                <option value="Well">Well</option>
+                <option value="River">River</option>
+                <option value="Rain">Rainwater</option>
+                <option value="Canal">Canal</option>
+              </select>
+            </div>
 
-        <label>Irrigation System Available:</label>
-        <input
-          type="checkbox"
-          checked={irrigationSystem}
-          onChange={(e) => setIrrigationSystem(e.target.checked)}
-        /> Yes
+            <div className="form-group">
+              <label>Irrigation System:</label>
+              <select 
+                value={irrigationSystem} 
+                onChange={(e) => setIrrigationSystem(e.target.value === 'true')}
+                required
+              >
+                <option value="">Select...</option>
+                <option value="true">Available</option>
+                <option value="false">Not Available</option>
+              </select>
+            </div>
 
-        <label>Water Usage Limitations:</label>
-        <select value={waterUsage} onChange={(e) => setWaterUsage(e.target.value)} >
-          <option value="">Select...</option>
-          <option value="None">None</option>
-          <option value="Low">Low</option>
-          <option value="Moderate">Moderate</option>
-          <option value="High">High</option>
-        </select>
+            <div className="form-group">
+              <label>Region/Location:</label>
+              <input 
+                type="text" 
+                value={region} 
+                onChange={(e) => setRegion(e.target.value)}
+                placeholder="Enter your region"
+                required
+              />
+            </div>
+          </div>
 
-        <label>Farming Technology Access:</label>
-        <select value={farmingTech} onChange={(e) => setFarmingTech(e.target.value)} >
-          <option value="">Select...</option>
-          <option value="Mechanized">Mechanized</option>
-          <option value="Automated">Automated</option>
-          <option value="Manual">Manual</option>
-        </select>
-
-        <label>Previously Grown Crops:</label>
-        <input type="text" value={prevCrops} onChange={(e) => setPrevCrops(e.target.value)} />
-
-        <label>Crop Preferences:</label>
-        <input type="text" value={cropPreferences} onChange={(e) => setCropPreferences(e.target.value)} />
-
-        <label>Region/Place:</label>
-        <input type="text" value={region} onChange={(e) => setRegion(e.target.value)} />
-
-        <button type="submit" disabled={loading}>
-          {loading ? "Generating..." : "Get Recommendations"}
-        </button>
-      </form>
-
-      {/* Display Recommendations */}
-      {recommendations && (
-        <div className="recommendations">
-          <h3>Crop Recommendations</h3>
-          {recommendations.error ? (
-            <p style={{ color: 'red' }}>{recommendations.error}</p>
-          ) : (
-            <ul>
-              {recommendations.map((recommendation, index) => (
-                <li key={index}>
-                  <h4>{recommendation.crop}</h4>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Analyzing Data...' : 'Get Recommendations'}
+          </button>
+        </form>
+        {error && <div className="error-message">{error}</div>}
+        {recommendations && (
+          <div className="recommendations">
+            <h2>Recommended Crops</h2>
+            {recommendations.map((recommendation, index) => (
+              <div key={index} className="recommendation-item">
+                <h3>{recommendation.crop}</h3>
+                <div className="recommendation-details">
                   <p><strong>Suitability:</strong> {recommendation.suitability}</p>
-                  <p><strong>Expected Yield:</strong> {recommendation.expectedYield}</p>
-                  <p><strong>Tips for Optimal Growth:</strong> {recommendation.tipsForOptimalGrowth}</p>
-                  <p><strong>Environmental Considerations:</strong> {recommendation.environmentalConsiderations}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+                  <p><strong>Growing Season:</strong> {recommendation.season}</p>
+                  <p><strong>Care Instructions:</strong> {recommendation.care}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
