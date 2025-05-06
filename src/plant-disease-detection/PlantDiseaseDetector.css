@@ -1,0 +1,252 @@
+/* Apply background color to the entire page */
+html {
+    background-color: #FBE9D0;
+    font-family: Arial, sans-serif; /* Optional: add a font for the page */
+    color: #874F41;
+    height: 100%; /* Ensure it covers the full height */
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+  .image-preview {
+    margin-top: 20px;
+    text-align: center;
+  }
+  .image-preview img {
+    max-width: 100%;
+    max-height: 350px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    background-color: #f9f9f9;
+  }
+   
+    /* Style for the container that holds the form */
+    .container {
+      position: relative;
+      width: 90%;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 30px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      z-index: 1;
+  }
+    
+    .form{
+      background-color: #FBE9D0;
+  
+    }
+    /* Style for the form container */
+    .form-container {
+      margin-top: 20px;
+      color: #874F41;
+  }
+    
+    /* Style for the button */
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .label{
+      color: #874F41;
+    }
+    
+  
+  
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    /* Message container for prediction or error */
+    .message {
+      margin-top: 20px;
+      font-size: 20px;
+      background-color: #FBE9D0;
+    }
+    
+    /* Specific color for prediction message */
+    .prediction {
+      color: green;
+    }
+    
+    /* Specific color for error message */
+    .error {
+      color: red;
+    }
+    
+    .plant-disease-detection {
+      padding-top: 64px;
+      min-height: 100vh;
+      width: 100%;
+      background: url('../assets/main_background.png') no-repeat center center fixed;
+      background-size: cover;
+      position: relative;
+    }
+    
+    .plant-disease-detection::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(3px);
+      z-index: 0;
+      pointer-events: none;
+    }
+    
+    .container::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .container::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+
+    .container::-webkit-scrollbar-thumb {
+      background: rgba(72, 187, 120, 0.5);
+      border-radius: 10px;
+    }
+
+    .container::-webkit-scrollbar-thumb:hover {
+      background: rgba(72, 187, 120, 0.7);
+    }
+    
+    h1, h4 {
+      color: #1a365d;
+      text-align: center;
+      margin-bottom: 20px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 30px;
+      font-weight: 700;
+    }
+    
+    h4 {
+      font-size: 1.8rem;
+      color: #2c5282;
+      margin-bottom: 25px;
+    }
+    
+    .form {
+      background: rgba(255, 255, 255, 0.8);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      margin-top: 20px;
+    }
+    
+    .label {
+      display: block;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 12px;
+      font-size: 1.1rem;
+    }
+    
+    input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px dashed #4299e1;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    input[type="file"]:hover {
+      border-color: #2b6cb0;
+      background: rgba(255, 255, 255, 1);
+    }
+    
+    .form-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+    
+    button {
+      background-color: #48bb78;
+      color: white;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    button:hover {
+      background-color: #38a169;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .message {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 500;
+    }
+    
+    .prediction {
+      background: rgba(154, 230, 180, 0.9);
+      color: #276749;
+    }
+    
+    .error {
+      background: rgba(254, 215, 215, 0.9);
+      color: #c53030;
+    }
+    
+    .image-preview {
+      margin-top: 30px;
+      text-align: center;
+    }
+    
+    .image-preview img {
+      max-width: 100%;
+      max-height: 400px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border: 3px solid rgba(255, 255, 255, 0.8);
+    }
+    
+    h4{
+      color: #01384c;
+      font-size: 50px;
+    }
+    
+    p1{
+        color: #e64833;
+        background-color: #FBE9D0;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0px 4px 10px rgba(175, 45, 45, 0.1);
+        text-align: left;
+        font-size: 18px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 150px; /* Adjust height as needed */
+        margin-top: 20px;
+      }
